@@ -1,11 +1,11 @@
 ---
-title: "My title"
-subtitle: "My subtitle if needed"
+title: "Understanding homicide numbers in Toronto"
+subtitle: ""
 author: 
   - Pascal Lee Slew
 thanks: "Code and data are available at: https://github.com/Pascal-304/Toronto-homicides/tree/main/starter%20folder."
 date: "`r format(Sys.time(), '%d %B %Y')`"
-abstract: "Homicide is the crime of killing with intent. It affects people on all walks of life and is an indication of safety/psychology of the population. We obtain the number of homicides in Toronto from the City of Toronto open portal and analyzed it using a graph. We found that homicide rate ... Our findings have implications for ...Second sentence. Third sentence. Fourth sentence."
+abstract: "Homicide data is important to understand complex societal problems. It is an indication of safety and psychology of the population. We obtain the homicides data in Toronto from the City of Toronto open portal and perform an exploratory analysis. Homicide trend has been fluctuating during the 2004 to 2020 period, with decreasing numbers in the last 2 years. We found that shooting has been the method of preference for killing. Our findings have implications for police operations and public policy."
 output:
   bookdown::pdf_document2
 toc: FALSE
@@ -39,11 +39,11 @@ toronto_homicides_clean <- clean_names(toronto_homicides)
 
 # Introduction
 
+Homicide is the crime of killing with intent. It may appear to the public as one of the most heinous crimes. The homicides are not mere numbers. Behind every case, there is a story and co-victims, often the ones close to the victim's social circle. Many reasons could motivate such behavior. 1,612 homicides were reported in the City of Toronto from 1974 to 2002; the findings tell us that homicides are close to us. 20 % of perpetrators were an intimate partner with the victim while the remaining 80 % shared a distant relationship with the victim. [@citestudy] Another literature highlights the idea that homicide is not only the use of lethal violence but reflects the socioeconomic disadvantage of different neighbourhoods. [@citesocio] Background literature suggests that Toronto homicides tend to be less male-dominated and point more towards family and intimate partners. Other relevant findings strengthened the view that specific neighbourhoods experience higher homicide counts owing to the higher levels of socioeconomic disadvantage and greater fraction of youth. [@citeHarinam]
 
+In this report, homicide data obtained from the City of Toronto Open Portal was analyzed to identify temporal and spacial trends from 2004 to 2020. The number of homicides in the City of Toronto is effectively low compared to other cities like Chicago or Los Angeles with a homicide rate of 1.62 per 100, 000 population in 2020. [@citestat] The findings in this report are consistent with background literature. Homicides were concentrated in select neighbourhood. There has also been a high recourse to guns in committing crimes. The homicides reflect part of the complex multi-dimensional issues Understanding the spatial and temporal trends is important to allow a better budgeting of the Toronto Police Services. Additionally, understanding the motivations of the homicides can help in devising the steps needed to improve the situation.
 
 The remaining of this paper is: Section\@ref(data) explains the data. Section\@ref(references) includes the references used in this paper.
-
-You can and should cross-reference sections and sub-sections. For instance, Section \@ref(data). R Markdown automatically makes the sections lower case and adds a dash to spaces to generate labels, for instance, Section \@ref(first-discussion-point). 
 
 
 
@@ -51,35 +51,34 @@ You can and should cross-reference sections and sub-sections. For instance, Sect
 
 This report used data obtained from the Toronto's Police Service's Annual Statistical Report (ASR). [@citeASR] The ASR is annual overview of police operations, covering different subjects from police budget, traffic collisions to crimes including homicides. The Toronto Police Service has made datasets open to the public in 2019. They are publicly available and can be obtained from the Toronto Police Service Public Safety Data Portal ot the City of Toronto Open Data Portal. The goal is to increase transparency and public understanding of police data. 
 
-The homicides dataset was obtained using the R package opendatatoronto [@citeopendatatoronto]. The R packages tidyverse [@citetidyverse], dplyr [@citedplyr], knitr [@citeknitr], kableExtra [@citekableExtra] and janitor [@citejanitor] were used to wrangle, extract and analyze the data in R [@citeR]. The dataset was last updated on March 23rd, 2021.
+The homicides dataset was obtained using the R package opendatatoronto [@citeopendatatoronto]. The R packages tidyverse [@citetidyverse], dplyr [@citedplyr], knitr [@citeknitr], kableExtra [@citekableExtra], sf [@citesf] and janitor [@citejanitor] were used to wrangle, extract and analyze the data in R [@citeR]. The dataset was last updated on March 23rd, 2021.
 
 The dataset comprised of all types of homicides reported to the Toronto Police Service (TPS) from 2004 to 2020. Homicides can be reported through diverse means namely e-mail, phone call and fax. The TPS has a special division for investigation of homicides. The TPS also encourages anyone who holds any information that may help with the investigations to come forward. The homicides dataset only contains temporal and spacial information. Information on the victims were omitted to record unbiased information and protect the privacy of the victims. Another consideration made was recording the occurrences to the nearest road intersection node. This imply that the number of homicides for the 140 neighbourhoods may not be accurate. The time of occurrence may also not be accurate since there is bias in which people may hesitate to immediately report. Additionally, it is unknown if the homicide occurrences were all case resolved or include cold cases.   
-
 
 The Toronto homicides dataset contains information on all homicides in Toronto from 2004 to 2020. It contains 1166 observations of 10 variables. Of the 10 variables, I kept only 6 of them. The variables id, event_unique_id and object_id were removed since they are identifiers of the homicide occurrences and do not provide details on the occurrence. While hood_id was removed because it represented similar information to neighbourhood but neighbourhood gives more easily understood information.   
 
 The table (Table \@ref(tab:dataextract)) below shows an extract of the dataset: 
 
-```{r dataextract, echo = FALSE, fig.width=2}
-
-
-
+```{r dataextract, echo = FALSE}
 #remove identifiers and unnecessary variables
 #create a table to show an extract of dataset
 toronto_homicides %>% 
   select(-c("_id", "ObjectId", "Event_Unique_Id", "Hood_ID")) %>% 
   slice(1:10) %>% 
   kable(
-    caption = "First ten rows of a dataset of homicides ... in Toronto",
+    caption = "First ten rows of a dataset of homicides in Toronto for years 2004 to 2020",
     col.names = c("Occurrence year", "Division", "Homicide type", "Occurrence date", "Neighbourhood", "Geometry"),
     booktabs = TRUE,
     linesep = "",
     align = c('c', 'c', 'c', 'c', 'c', 'c', 'c', 'c')
-    ) %>% kableExtra::kable_styling()
+    ) %>% 
+  kableExtra::kable_styling(latex_options = "hold_position",
+                            font_size = 7.5)
 
 
 ```
 
+\newpage
 
 ```{r, include = FALSE, message=FALSE, warning=FALSE}
 #create occurrence_month variable
@@ -114,7 +113,7 @@ toronto_homicides_clean_03 <-
 ```
 
 
-First, we look at the homicide trend from 2004 to 2020. From (Figure \@ref(fig:trend)), the number of homicides has an increasing trend overall for years 2004 to 2007. From 2008 to 2011, a decreasing trend can be observed. For years 2012 to 2015, the number of homicides has remained steady. The city of Toronto has recorded the highest occurrence of homicides in 2018. From 2018 onwards, the number of homicides has been decreasing. While it is important to keep the homicide rate low, understanding the reasons for the such trends is critical. 
+First, we look at the homicide trend from 2004 to 2020. From (Figure \@ref(fig:trend)), the number of homicides has an increasing trend overall for years 2004 to 2007. From 2008 to 2011, a decreasing trend can be observed. For years 2012 to 2015, the number of homicides has remained steady. The city of Toronto has recorded 97 homicides in 2018, the highest occurrence. From 2018 onwards, the number of homicides has been decreasing. The decreasing numbers can be partly explained by the fact that the City of Toronto implemented restrictive measures  While it is important to keep the homicide rate low, understanding the reasons for the such trends is critical. Youth violence and gangs contribute partly in driving the numbers up. According to Edward Keenan, a greater commitment from the City authorities is needed. He recommends an increased provision of community programs and easing the access to education in an attempt to keep the youth away from criminal culture.[@citekeenan] Another reason behind the homicide has been mental health. 30% of the gun crime in 2021 is attributed to mental health problem.[@citegun] Mental health has increasing been a major issue; Toronto is not spared. It is crucial to build a resilient community with adequate resources dedicated to those who need them. 
 
 ```{r trend, fig.cap = "General homicide trend from 2004 to 2020", fig.width=8, fig.height=4, echo = FALSE}
 #create a bar plot to illustrate 
@@ -122,7 +121,7 @@ toronto_homicides_clean_01 %>%
   count(occurrence_year) %>% 
   ggplot(aes(x = occurrence_year,
              y = n)) +
-  geom_bar(stat = "identity") +
+  geom_bar(stat = "identity", fill = "steelblue") +
   theme_minimal() +
   labs(x = "Occurrence year",
        y = "Number of homicides") +
@@ -134,7 +133,9 @@ toronto_homicides_clean_01 %>%
 
 ```
 
-The TPS has classified homicides into 3 categories: Shooting, Stabbing and Other. Investigating how people were killed is essential to figure out how public policy or police operations can be improved to prevent possible homicides. In (Figure \@ref(fig:homicide)), several observations can be made. It is clear that perpetrators preferred shooting over any other means of killing. This indicates a possible flaw in Canada firearms control. Homicides by shooting has been driving the trend in general while stabbing and other means of killing have been fluctuating; they remained in the 5 to 26 range over the years.
+The TPS has classified homicides into 3 categories: Shooting, Stabbing and Other. Investigating how people were killed is essential to figure out how public policy or police operations can be improved to prevent possible homicides. In (Figure \@ref(fig:homicide)), several observations can be made. It is clear that perpetrators preferred shooting over any other means of killing. This indicates a possible flaw in Canada firearms control. Homicides by shooting has been driving the trend in general while stabbing and other means of killing have been fluctuating; they remained in the 5 to 26 range over the years. Toronto shares its border with the United States. This has lead to an alarming issue of weapon smuggle and gun distribution. 80% of the guns used in crimes were found to be sourced from the United States.[@citegun]
+
+\newpage
 
 ```{r homicide, fig.cap = "Distribution of homicide types in Toronto from 2014 to 2020", fig.width=8, fig.height=4, echo= FALSE}
 # create a line plot to investigate the differences in the trends of the homicide types
@@ -152,18 +153,18 @@ toronto_homicides_clean_01 %>%
 
 The number of homicides has been volatile over the years, on the decrease in 2019 and 2020. In (Figure \@ref(fig:month)), we look at the cumulative homicide count across the year. We found that July has been the deadliest month. July, August and September have recorded the higher occurrences in general while cumulative homicide count are similar for the other months. From this graph, it is difficult to establish any relationship between months and homicide. 
 
-```{r month, fig.cap="Cumulative homicide count for calendar months", echo=FALSE, fig.height=4, fig.width=8}
+```{r month, fig.cap="Cumulative homicide count for calendar months", echo=FALSE}
 # plot a barplot to illustrate the monthly trend
 toronto_homicides_clean_03 %>% 
   ggplot(aes(x = occurrence_month)) +
-  geom_bar(position = "dodge") +
+  geom_bar(fill = "steelblue") +
   theme_minimal() +
   labs(x = "Occurrence month",
        y = "Total number of homicides") 
   
 ```
 
-Toronto consists of 140 neighbourhoods. From (Table \@ref(tab:neighbourhood)), Moss Park neighbourhood has recorded the highest homicide count with 31 occurrences over 17 years. Out of the 140 neighbourhoods, 39 of them recorded more than 10 homicides during the period 2004 to 2020. 
+Toronto consists of 140 neighbourhoods. From (Table \@ref(tab:neighbourhood)), Moss Park neighbourhood has recorded the highest homicide count with 31 occurrences over 17 years. Out of the 140 neighbourhoods, 39 of them recorded more than 10 homicides during the period 2004 to 2020. Neighbourhoods with higher crime rates have often predominantly worse socio-economic conditions and consists mostly of people of colour.
 ```{r neighbourhood, echo = FALSE, message=FALSE}
 #creating a table showing homicide count for neighbourhoods
 toronto_homicides_clean_03$geometry <- NULL
@@ -178,7 +179,8 @@ toronto_homicides_clean_03 %>%
     booktabs = TRUE,
     linesep = "",
     align = c("c", "c")
-  )
+  ) %>% 
+  kableExtra::kable_styling(latex_options = "hold_position")
 
 more_than_10 <- toronto_homicides_clean_03 %>% 
   count(neighbourhood) %>% 
@@ -188,10 +190,9 @@ more_than_10 <- toronto_homicides_clean_03 %>%
 
 
 
-
-
 \newpage
 
+\newpage
 
 # References
 
